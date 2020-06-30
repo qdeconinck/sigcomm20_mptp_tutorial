@@ -1,0 +1,7 @@
+xpType:iperf
+mptcpEnabled:0
+clientPcap:yes
+serverPcap:yes
+snaplenPcap:100
+iperfTime:10
+iperfParallel:1

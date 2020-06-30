@@ -1,2 +1,0 @@
-# MPTP Tutorial Hands-On
-
