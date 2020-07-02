@@ -1,3 +1,4 @@
 .vagrant
 **.log
 **.pcap
+netstat_*

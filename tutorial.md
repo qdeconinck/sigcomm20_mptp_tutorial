@@ -48,7 +48,33 @@ $ sudo python ~/minitopo2/runner.py -t topo -x xp_mptcp
 A quick inspection of the `iperf.log` file should indicate a goodput twice larger than with plain TCP.
 This confirms that Multipath TCP can take advantage of multiple network paths (in this case, two) while TCP cannot.
 
-## 2. Impact of Using Multiple Paths
+## 2. Impact of the Selection of the Path
+
+The packet scheduler is one of the multipath-specific algorithms.
+It selects on which available subflow for sending the next packet will be sent.
+The two most basic packets schedulers are the following.
+
+* Lowest RTT first: called `default` in MPTCP, it favors the available subflow experiencing the lowest RTT.
+* Round-Robin: called `roundrobin` in MPTCP, it equally shares the network load across subflows.
+
+The packet scheduler is also responsible of the content of the data to be sent.
+Yet, due to implementation constraints, most of the proposed packet schedulers in the litterature focus on the first data to be sent (i.e., they only select the path where to send the next data).
+With such strategy, the scheduler has only impactful choices when several network paths are available.
+
+Case 1: MSG traffic from client perspective
+
+Case 2: HTTP traffic
+
+wget returns the following results (in seconds)
+
+|**GET Size** | 256 KB | 1 MB  | 10 MB |
+|**Scheduler**|--------|-------|-------|
+| Lowest RTT  | 0.286  | 0.576 |
+| Round Robin | 0.285  | 0.597 |
+
+
+To demonstrate this, we consider 
+
 - Impact of the traffic (http size)
 - Impact of the scheduler
 
