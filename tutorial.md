@@ -61,24 +61,68 @@ The packet scheduler is also responsible of the content of the data to be sent.
 Yet, due to implementation constraints, most of the proposed packet schedulers in the litterature focus on the first data to be sent (i.e., they only select the path where to send the next data).
 With such strategy, the scheduler has only impactful choices when several network paths are available.
 
-Case 1: MSG traffic from client perspective
 
-Case 2: HTTP traffic
+### Case 1: MSG traffic from client perspective
 
-wget returns the following results (in seconds)
+   |-------- 100 Mbps, 40 ms RTT --------|
+Client                                Router --------- Server
+   |-------- 100 Mbps, 80 ms RTT --------|
 
-|**GET Size** | 256 KB | 1 MB  | 10 MB |
+Let's consider a simple traffic where the client sends a request (of size inferior to an initial congestion window) and the server replies to it.
+The client computes the delay between sending the request and receiving the corresponding response.
+To perform the experiment with the Lowest RTT scheduler, run the following command under folder `02_scheduler/msg`:
+```bash
+sudo python ~/minitopo2/runner.py -t topo -x reqres_rtt
+```
+When inspecting the `msg_client.log` file, you can notice that all the delays are about 50 ms.
+Because the Lowest RTT scheduler always prefer the faster path, and because this fast path is never blocked by the congestion window, the data only flows over the fast path.
+
+To perform the same experiment using the Round-Robin one, do:
+```bash
+sudo python ~/minitopo2/runner.py -t topo -x reqres_rr
+```
+In this case, most of the response's delays are around 90 ms.
+Since the round-robin scheduler spreads the load over the slowest network path, it causes the delay to have as lower bound the delay of this slow path.
+Notice that the first request is answered in about 50 ms.
+Could you figure out why?
+HINT: have a look at the PCAP traces.
+
+> Note that the multipath algorithms, including the packet scheduler, are host specific.
+> This means that the client and the server can use different algorithms over a single connection.
+> However, the Multipath TCP implementation in the Linux kernel does not apply `sysctl`s per namespace, making this experimentation not possible using Mininet. 
+
+
+### Case 2: HTTP traffic
+
+While the choice of the packet scheduler is important for delay-sensitive traffic, this is less obvious for bulk transfers.
+Consider the following network.
+
+   |-------- 20 Mbps, 30 ms RTT ---------|
+Client                                Router --------- Server
+   |-------- 20 Mbps, 100 ms RTT --------|
+
+Our runs returned the following results (in seconds).
+Yours might be different (try to run them several times), but the overal trend (and its explaination) should be similar.
+
+|**GET Size** | 256 KB | 1 MB  | 20 MB |
 |**Scheduler**|--------|-------|-------|
-| Lowest RTT  | 0.286  | 0.576 |
-| Round Robin | 0.285  | 0.597 |
+| Lowest RTT  | 0.246  | 0.533 | 4.912 |
+| Round Robin | 0.245  | 0.582 | 4.898 |
 
+Based on the network traces, could you explain why
+- There is very little difference between schedulers with the 256 KB GET?
+- The difference with larger files?
 
-To demonstrate this, we consider 
+> The difference with larger files depends on when the last data on the slow path is sent.
+> In such bulk scenario when networks paths fully use their congestion window, the congestion control algorithm is the limiting factor.
 
-- Impact of the traffic (http size)
-- Impact of the scheduler
+In the proposed HTTP experiment, a Multipath TCP connection is created for each data exchange.
+Let us think about the use of a persistent Multipath TCP connection (with already established subflows) to perform the HTTP requests.
+In your opinion, what will this change regarding to the results previously obtained? 
 
 ## 3. Impact of the Path Manager
+
+
 - fullmesh
 - ndiffports
 - binder?
@@ -89,3 +133,6 @@ To demonstrate this, we consider
 ## 5. The impact of the Congestion Control Algorithm
 - coupled
 - cubic
+
+## 6. Advanced Packet Scheduling with Multipath QUIC
+

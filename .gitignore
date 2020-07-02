@@ -2,3 +2,4 @@
 **.log
 **.pcap
 netstat_*
+**.err

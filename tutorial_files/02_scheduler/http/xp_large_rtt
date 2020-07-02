@@ -2,6 +2,6 @@ xpType:http
 clientPcap:yes
 serverPcap:yes
 snaplenPcap:100
-sched:roundrobin
+sched:default
 file:random
-file_size:10240
+file_size:20480

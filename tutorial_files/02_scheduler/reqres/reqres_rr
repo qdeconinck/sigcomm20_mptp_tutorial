@@ -1,0 +1,9 @@
+xpType:msg
+clientPcap:yes
+serverPcap:yes
+snaplenPcap:100
+sched:roundrobin
+msgClientSleep:0.25
+msgServerSleep:0
+msgNbRequests:20
+msgBytes:10000
