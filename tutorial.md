@@ -16,9 +16,11 @@ and you will be connected to the VM.
 One of the use cases of multipath transport protocols is to aggregate the bandwidths of the available paths.
 To demonstrate this, let's consider a simple, symmetrical network scenario.
 
+```
    |-------- 20 Mbps, 40 ms RTT ---------|
 Client                                Router --------- Server
    |-------- 20 Mbps, 40 ms RTT ---------|
+```
 
 This scenario is described in the file `tutorial_files/01_multipath/topo`.
 With this network, we will compare two `iperf` runs.
@@ -64,9 +66,11 @@ With such strategy, the scheduler has only impactful choices when several networ
 
 ### Case 1: MSG traffic from client perspective
 
+```
    |-------- 100 Mbps, 40 ms RTT --------|
 Client                                Router --------- Server
    |-------- 100 Mbps, 80 ms RTT --------|
+```
 
 Let's consider a simple traffic where the client sends a request (of size inferior to an initial congestion window) and the server replies to it.
 The client computes the delay between sending the request and receiving the corresponding response.
@@ -97,15 +101,18 @@ HINT: have a look at the PCAP traces.
 While the choice of the packet scheduler is important for delay-sensitive traffic, this is less obvious for bulk transfers.
 Consider the following network.
 
+```
    |-------- 20 Mbps, 30 ms RTT ---------|
 Client                                Router --------- Server
    |-------- 20 Mbps, 100 ms RTT --------|
+```
 
 Our runs returned the following results (in seconds).
 Yours might be different (try to run them several times), but the overal trend (and its explaination) should be similar.
 
 |**GET Size** | 256 KB | 1 MB  | 20 MB |
-|**Scheduler**|--------|-------|-------|
+| :---------: | :----: | :---: | :---: |
+|**Scheduler**|        |       |       |
 | Lowest RTT  | 0.246  | 0.533 | 4.912 |
 | Round Robin | 0.245  | 0.582 | 4.898 |
 
@@ -122,10 +129,45 @@ In your opinion, what will this change regarding to the results previously obtai
 
 ## 3. Impact of the Path Manager
 
+The path manager is the multipath algorithm that determines how subflows will be created over a Multipath TCP connection.
+In the Linux kernel implementation, we find the following simple algorithms:
 
-- fullmesh
-- ndiffports
-- binder?
+- `default`: a "passive" path manager that does not initiate any additional subflow on a connection
+- `fullmesh`: the default path manager creating a subflow between each pair of (IP client, IP server)
+- `ndiffports`: over the same pair of (IP client, IP server), creates several subflows (by default 2) by modifying the source port.
+
+Notice that in Multipath TCP, only the client initiates subflows.
+To understand these different algorithms, consider the following network scenario first.
+
+```
+Client ----- 25 Mbps, 20 ms RTT ------ Router --------- Server
+```
+
+Let consider the difference between the `fullmesh` and the `ndiffports` path managers first.
+Run the associated experiments (running an iperf traffic) and compare the obtained goodput.
+Then, have a look at their corresponding PCAP files to spot how many subflows were created for each experiment.
+You should notice only one subflow for the `fullmesh` path manager, while the `ndiffports` one should generate two.
+
+Then, let's consider the following network.
+
+```
+   |-------- 25 Mbps, 20 ms RTT --------|
+Client                                Router --------- Server
+   |-------- 25 Mbps, 20 ms RTT --------|
+```
+
+Now consider the three different path managers.
+For each of them, can you explain the results you obtain in terms of goodput and the number of subflows created?
+
+Finally, consider this network.
+```
+     /------ 25 Mbps, 20 ms RTT ------\    /-----------\
+Client                                Router           Server
+     \------ 25 Mbps, 20 ms RTT ------/    \-----------/
+```
+Run the experiment with the `fullmesh` path manager.
+How many subflows are created, and between which IP pairs?
+How does the client learn the other IP address of the server?
 
 ## 4. The notion of Backup Path
 - Experiment with lost first path, second one backup
