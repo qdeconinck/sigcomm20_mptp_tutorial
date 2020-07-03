@@ -1,6 +1,7 @@
 topoType:MultiIf
 leftSubnet:10.0.
 rightSubnet:10.1.
-path_0:10,50,25
-path_1:10,50,25
-serverPaths:2
+path_c2r_0:10,50,25
+path_c2r_1:10,50,25
+path_r2s_0:5,50,50
+path_r2s_1:5,50,50

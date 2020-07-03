@@ -161,9 +161,9 @@ For each of them, can you explain the results you obtain in terms of goodput and
 
 Finally, consider this network.
 ```
-     /------ 25 Mbps, 20 ms RTT ------\    /-----------\
-Client                                Router           Server
-     \------ 25 Mbps, 20 ms RTT ------/    \-----------/
+     /------ 25 Mbps, 20 ms RTT ------\    /------ 50 Mbps, 10 ms RTT ------\
+Client                                Router                                 Server
+     \------ 25 Mbps, 20 ms RTT ------/    \------ 50 Mbps, 10 ms RTT ------/
 ```
 Run the experiment with the `fullmesh` path manager.
 How many subflows are created, and between which IP pairs?
