@@ -1,0 +1,7 @@
+topoType:MultiIf
+leftSubnet:10.0.
+rightSubnet:10.1.
+path_c2r_0:20,400,100
+path_c2r_1:15,300,100,0,1
+changeNetem:yes
+netemAt_c2r_0:5,delay 20ms loss 100 limit 50000

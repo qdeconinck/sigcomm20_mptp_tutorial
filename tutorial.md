@@ -169,8 +169,34 @@ Run the experiment with the `fullmesh` path manager.
 How many subflows are created, and between which IP pairs?
 How does the client learn the other IP address of the server?
 
-## 4. The notion of Backup Path
-- Experiment with lost first path, second one backup
+## 4. The Notion of Backup Path
+
+In some situations, available network paths do not have the same cost.
+They might be expensive for usage, e.g., a data-limited cellular connectivity versus a flat cost based Wi-Fi one.
+Instead of preventing their usage at all, we can declare a network interface as a backup one.
+All the Multipath TCP subflows using this network interface will be marked as backup subflows.
+The `default` Lowest-RTT packet scheduler considers backup subflows only if either 1) there is no non-backup subflows, or 2) all the non-backup ones are marked as potentially failed.
+A subflow enters this potentially failed state when it experiences retransmissions time outs.
+
+To better grasp this notion, consider the network scenario shown below.
+```
+   |-------- 100 Mbps, 40 ms RTT --------|
+Client                                Router --------- Server
+   |-------- 100 Mbps, 30 ms RTT --------|
+```
+The connection starts on the 40 ms RTT path.
+Then, after 3 seconds, the 40 ms RTT path blackholes all packets (`tc netem loss 100%`) without notifying hosts of the loss of connectivity.
+This situation mimics a mobile device moving out of reachability of a wireless network.
+Two versions of the topology are present in `04_backup`: `topo` (where both paths are marked as "normal") and `topo_bk` (where the 30 ms RTT is marked as backup).
+We experiment with the simple request/response traffic previously explored in `02_scheduler/reqres` with the `default` scheduler.
+
+- First run the experiment `reqres_rtt` with the topology `topo`. Then have a look at the experienced application delay in `msg_client.log`. Can you explain your results?
+  
+Now consider the same experiment but with the topology `topo_bk`.
+
+- How do MPTCP hosts advertise the 30 ms RTT path as a backup one?
+- Look at the application delays in `msg_client.log`. Based on the client trace, can you explain the results?
+- Focus on the server-side trace. Where does the server send the first response after the loss event? Can you explain why? Would it be possible for the server to decrease the application delay?
 
 ## 5. The impact of the Congestion Control Algorithm
 - coupled
