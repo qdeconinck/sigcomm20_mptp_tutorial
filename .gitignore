@@ -1,5 +1,5 @@
 .vagrant
-**.log
+**.log*
 **.pcap
 netstat_*
 **.err
