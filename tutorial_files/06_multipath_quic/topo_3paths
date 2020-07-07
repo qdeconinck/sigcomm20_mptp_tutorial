@@ -1,0 +1,6 @@
+topoType:MultiIf
+leftSubnet:10.0.
+rightSubnet:10.1.
+path_c2r_0:20,80,20
+path_c2r_1:40,160,20
+path_c2r_2:20,80,20

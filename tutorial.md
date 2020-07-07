@@ -204,3 +204,21 @@ Now consider the same experiment but with the topology `topo_bk`.
 
 ## 6. Advanced Packet Scheduling with Multipath QUIC
 
+First case:
+```
+   |-------- 20 Mbps, 40 ms RTT --------|
+Client                                Router --------- Server
+   |-------- 20 Mbps, 80 ms RTT --------|
+```
+
+Compare SP-QUIC vs. MP-QUIC with Round-Robin and Lowest RTT schedulers.
+
+Second case:
+```
+      /----- 20 Mbps, 40 ms RTT -----\
+Client ----- 20 Mbps, 80 ms RTT ----- Router --------- Server
+      \----- 20 Mbps, 40 ms RTT -----/
+```
+
+Compare MP-QUIC same path manager vs. MP-QUIC reverse.
+Observe that first path and third paths are only used in one direction.

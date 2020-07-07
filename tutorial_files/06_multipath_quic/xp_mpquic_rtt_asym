@@ -1,0 +1,7 @@
+xpType:pquic
+clientPcap:yes
+serverPcap:yes
+snaplenPcap:100
+pquicSize:10240000
+pquicClientPlugins:~/pquic/plugins/multipath/multipath_rtt.plugin
+pquicServerPlugins:~/pquic/plugins/multipath/multipath_rtt_asym.plugin

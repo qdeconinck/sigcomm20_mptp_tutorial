@@ -1,0 +1,6 @@
+xpType:pquic
+clientPcap:yes
+serverPcap:yes
+snaplenPcap:100
+pquicSize:10240000
+pquicPlugins:~/pquic/plugins/multipath/multipath_rr.plugin
