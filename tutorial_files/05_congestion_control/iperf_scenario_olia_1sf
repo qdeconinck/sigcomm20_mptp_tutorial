@@ -1,0 +1,7 @@
+xpType:iperfScenario
+congctrl:olia
+mptcpEnabled:1
+clientPcap:yes
+serverPcap:yes
+snaplenPcap:100
+iperfScenarioFMSublows:1

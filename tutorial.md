@@ -248,8 +248,43 @@ The second flow, using TCP, is between `Client_1` and `Server_1`, lasts 20 secon
 The third flow, also using TCP, is between `Client_2` and `Server_2`, lasts 20 seconds and starts 20 seconds after the first flow.
 Therefore, the first and second flows compete for the upper bottleneck between time 10s and 30s, while the first and third flow compete for the lower one between time 20s and 40s.
 
-- coupled
-- cubic
+First consider the regular case where Multipath TCP establish one subflow per IP address pair (thus two subflows).
+We compare two congestion control algorithms for the Multipath TCP flow: the regular uncoupled New Reno one (`reno`) and the coupled OLIA one (`olia`).
+TCP flows use the `reno` congestion control.
+You can run them in the folder `tutorial/05_congestion_control` using
+```bash
+$ mprun -t topo_cong -x iperf_scenario_reno_1sf
+$ mprun -t topo_cong -x iperf_scenario_olia_1sf
+```
+Take some time to look at the results (the Multipath TCP Iperf flow result file is `iperf.log0` and TCP ones are respectively `iperf.log1` and `iperf.log2`).
+You should observe that when TCP flows run, they obtain half of the bandwidth capacity of the bottleneck.
+The rate that the Multipath TCP flow should obtain should 
+* start to about 40 Mbps,
+* then decrease to 30 Mbps after 10 seconds (competition with flow 1 on upper bottleneck),
+* decrease again to 20 Mbps after 20 seconds (competing with both flows on both bottlenecks),
+* increase to 30 Mbps after 30 seconds (flow 1 completed, only competing with flow 2 on lower bottleneck),
+* and finally restoring the 40 Mbps after 40 seconds when both single-path flows completed.
+In this situation, you should observe similar results when running `reno` and `olia`.
+
+However, either intentional or not, several subflows of a same Multipath TCP connection might compete for the same network bottleneck.
+To illustrate this case, consider the case where the Multipath TCP client creates 4 subflows between each pair of IP addresses.
+Therefore, up to 5 TCP connections can compete over each bottleneck (1 regular TCP flow + 4 Multipath TCP subflows).
+
+First run the associated `reno` experience.
+```bash
+$ mprun -t topo_cong -x iperf_scenario_reno_4sf
+```
+
+- Observe first the rate obtained by TCP flows (`iperf.log1` and `iperf.log2`). Then observe the rate obtained by the Multipath TCP flow (`iperf.log0`). What do you observe? Can you explain this behavior?
+
+To prevent this possible unfairness against single-path flows, Multipath TCP can use coupled congestion control algorithms.
+When using a coupled one, subflows of a same connection competing for the same bottleneck should get together as much bandwidth as a single uncoupled (TCP) flow.
+Using such schemes prevent possible starvation attacks against single-path protocols.
+To observe this behavior, reconsider the `olia` congestion control with the 4 subflows per IP address pair.
+```bash
+$ mprun -t topo_cong -x iperf_scenario_olia_4sf
+```
+What do you observe?
 
 ## 6. Advanced Packet Scheduling with Multipath QUIC
 
