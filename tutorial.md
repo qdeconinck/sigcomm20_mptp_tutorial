@@ -233,18 +233,20 @@ $ mprun -t topo_bk -x reqres_rtt
 The ability to use several network paths over a single (Multipath) TCP connection raises concerns about the fairness relative to single-path protocols (like regular TCP).
 To picture this issue, consider an iperf traffic with the following network scenario.
 ```
-Client_1 ---------- 20 Mbps, 20 ms RTT --------|      -------- Server_1
-         /                                     |     /
-        /                                      |    /
+Client_1 ---------- 20 Mbps, 20 ms RTT -----          -------- Server_1
+         /                                  \        /
+        /                                    \      /
   Client                                      Router --------- Server
-        \                                      |    \
-         \                                     |     \
-Client_2 ---------- 20 Mbps, 80 ms RTT --------|      -------- Server_2
+        \                                    /      \
+         \                                  /        \
+Client_2 ---------- 20 Mbps, 80 ms RTT -----          -------- Server_2
 ```
 Here, the main `Client` shares each of the network bottleneck with another host.
 Three iperf traffics are generated.
-The first is between `Client` and `Server` and lasts 50 seconds.
-The second is between 
+The first flow, using Multipath TCP, is between `Client` and `Server` and lasts 50 seconds.
+The second flow, using TCP, is between `Client_1` and `Server_1`, lasts 20 seconds and starts 10 seconds after the first flow.
+The third flow, also using TCP, is between `Client_2` and `Server_2`, lasts 20 seconds and starts 20 seconds after the first flow.
+Therefore, the first and second flows compete for the upper bottleneck between time 10s and 30s, while the first and third flow compete for the lower one between time 20s and 40s.
 
 - coupled
 - cubic
