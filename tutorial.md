@@ -3,13 +3,17 @@
 ## VM Setup
 
 Just run the following commands
-
 ```bash
 $ vagrant up
 $ vagrant ssh
 ```
-
 and you will be connected to the VM.
+
+Inside the VM, you have access to the folder containing the experiment files through the `/tutorial` folder.
+To run the experiments, we rely on a bash alias called `mprun` (defined in `/etc/bash.bashrc`).
+Typically, you just need to go to the right folder and run `mprun -t topo_file -x xp_file` where `topo_file` contains the description of a network scenario and `xp_file` the description of the experiment to perform.
+
+For the remaining of this tutorial, we recommand installing `wireshark` to analyze the PCAP packet traces that will be generated each time an experiment is performed.
 
 ## 1. Observing the Bandwidth Aggregation when Using Multiple Paths
 
@@ -22,33 +26,35 @@ Client                                Router --------- Server
    |-------- 20 Mbps, 40 ms RTT ---------|
 ```
 
-This scenario is described in the file `tutorial_files/01_multipath/topo`.
+This scenario is described in the file `01_multipath/topo`.
 With this network, we will compare two `iperf` runs.
 The first consists in a regular TCP transfer between the client and the server.
-To perform this experiment, `ssh` into the vagrant VM using
+To perform this experiment, `ssh` into the vagrant VM using (if not done yet)
 ```bash
 $ vagrant ssh
 ```
 And then type the following
 ```bash
-$ cd /vagrant_data/tutorial_files/01_multipath
-$ sudo python ~/minitopo2/runner.py -t topo -x xp_tcp
+$ cd /tutorial/01_multipath
+$ mprun -t topo -x xp_tcp
 ```
 The run will take about 25 seconds.
-When done, you can check on the VM the content of `ìperf.log` using
+When done, you can check (either on the VM or on your host machine) the content of `ìperf.log` using
 ```bash
 $ cat iperf.log
 ```
 You should notice that the goodput achieved by `ìperf` should be about 19-20 Mbps, which is expected since only one of the 20 Mbps network path is used.
-The run should also provide you two pcap files, one from the client's perspective and the other from the server's one.
+The run should also provide you two pcap files, one from the client's perspective (`client.pcap`) and the other from the server's one (`server.pcap`).
 
 Then, we will consider the same experiment, but running now Multipath TCP instead of plain TCP.
 For this, in the vagrant VM, just type the following command in the VM.
 ```bash
-$ sudo python ~/minitopo2/runner.py -t topo -x xp_mptcp
+$ mprun -t topo -x xp_mptcp
 ```
 A quick inspection of the `iperf.log` file should indicate a goodput twice larger than with plain TCP.
 This confirms that Multipath TCP can take advantage of multiple network paths (in this case, two) while TCP cannot.
+You can also have a look at the pcap files to observe the usage of "Multipath TCP" TCP options.
+
 
 ## 2. Impact of the Selection of the Path
 
@@ -61,10 +67,10 @@ The two most basic packets schedulers are the following.
 
 The packet scheduler is also responsible of the content of the data to be sent.
 Yet, due to implementation constraints, most of the proposed packet schedulers in the litterature focus on the first data to be sent (i.e., they only select the path where to send the next data).
-With such strategy, the scheduler has only impactful choices when several network paths are available.
+With such strategy, the scheduler has only impactful choices when several network paths are available for data transmission.
 
 
-### Case 1: MSG traffic from client perspective
+### Case 1: request/response traffic from client perspective
 
 ```
    |-------- 100 Mbps, 40 ms RTT --------|
@@ -76,20 +82,19 @@ Let's consider a simple traffic where the client sends a request (of size inferi
 The client computes the delay between sending the request and receiving the corresponding response.
 To perform the experiment with the Lowest RTT scheduler, run the following command under folder `02_scheduler/msg`:
 ```bash
-sudo python ~/minitopo2/runner.py -t topo -x reqres_rtt
+$ mprun -t topo -x reqres_rtt
 ```
 When inspecting the `msg_client.log` file, you can notice that all the delays are about 50 ms.
-Because the Lowest RTT scheduler always prefer the faster path, and because this fast path is never blocked by the congestion window, the data only flows over the fast path.
+Because the Lowest RTT scheduler always prefer the faster path, and because this fast path is never blocked by the congestion window due to the application traffic, the data only flows over the fast path.
 
-To perform the same experiment using the Round-Robin one, do:
+To perform the same experiment using the Round-Robin packet scheduler, runs:
 ```bash
-sudo python ~/minitopo2/runner.py -t topo -x reqres_rr
+$ mprun -t topo -x reqres_rr
 ```
 In this case, most of the response's delays are around 90 ms.
 Since the round-robin scheduler spreads the load over the slowest network path, it causes the delay to have as lower bound the delay of this slow path.
-Notice that the first request is answered in about 50 ms.
-Could you figure out why?
-HINT: have a look at the PCAP traces.
+
+- Notice that the first request is answered in about 50 ms. Could you figure out why? HINT: have a look at the PCAP traces.
 
 > Note that the multipath algorithms, including the packet scheduler, are host specific.
 > This means that the client and the server can use different algorithms over a single connection.
@@ -107,6 +112,9 @@ Client                                Router --------- Server
    |-------- 20 Mbps, 100 ms RTT --------|
 ```
 
+On this network, the client will perform a HTTP GET request to the server for a file of varying size.
+The experiences files are located in the folder `/tutorial/02_scheduler/http`.
+
 Our runs returned the following results (in seconds).
 Yours might be different (try to run them several times), but the overal trend (and its explaination) should be similar.
 
@@ -116,8 +124,8 @@ Yours might be different (try to run them several times), but the overal trend (
 | Lowest RTT  | 0.246  | 0.533 | 4.912 |
 | Round Robin | 0.245  | 0.582 | 4.898 |
 
-Based on the network traces, could you explain why
-- There is very little difference between schedulers with the 256 KB GET?
+Based on the network traces, could you explain:
+- Why there is very little difference between schedulers with the 256 KB GET?
 - The difference with larger files?
 
 > The difference with larger files depends on when the last data on the slow path is sent.
@@ -126,6 +134,7 @@ Based on the network traces, could you explain why
 In the proposed HTTP experiment, a Multipath TCP connection is created for each data exchange.
 Let us think about the use of a persistent Multipath TCP connection (with already established subflows) to perform the HTTP requests.
 In your opinion, what will this change regarding to the results previously obtained? 
+
 
 ## 3. Impact of the Path Manager
 
@@ -143,13 +152,16 @@ To understand these different algorithms, consider the following network scenari
 Client ----- 25 Mbps, 20 ms RTT ------ Router --------- Server
 ```
 
-Let consider the difference between the `fullmesh` and the `ndiffports` path managers first.
+Let us first consider the difference between the `fullmesh` and the `ndiffports` path managers.
 Run the associated experiments (running an iperf traffic) and compare the obtained goodput.
 Then, have a look at their corresponding PCAP files to spot how many subflows were created for each experiment.
-You should notice only one subflow for the `fullmesh` path manager, while the `ndiffports` one should generate two.
+```bash
+$ mprun -t topo_single_path -x iperf_fullmesh
+$ mprun -t topo_single_path -x iperf_ndiffports
+```
+In the generated PCAP traces, you should notice only one subflow for the `fullmesh` path manager, while the `ndiffports` one should generate two.
 
 Then, let's consider the following network.
-
 ```
    |-------- 25 Mbps, 20 ms RTT --------|
 Client                                Router --------- Server
@@ -157,7 +169,13 @@ Client                                Router --------- Server
 ```
 
 Now consider the three different path managers.
-For each of them, can you explain the results you obtain in terms of goodput and the number of subflows created?
+```bash
+$ mprun -t topo_two_client_paths -x iperf_fullmesh
+$ mprun -t topo_two_client_paths -x iperf_ndiffports
+$ mprun -t topo_two_client_paths -x iperf_default
+```
+
+- For each of them, can you explain the results you obtain in terms of goodput (`iperf.log`) and the number of subflows created (by inspecting the PCAP traces)?
 
 Finally, consider this network.
 ```
@@ -166,19 +184,23 @@ Client                                Router                                 Ser
      \------ 25 Mbps, 20 ms RTT ------/    \------ 50 Mbps, 10 ms RTT ------/
 ```
 Run the experiment with the `fullmesh` path manager.
-How many subflows are created, and between which IP pairs?
-How does the client learn the other IP address of the server?
+```bash
+$ mprun -t topo_two_client_paths_two_server_paths -x iperf_fullmesh
+```
+
+- How many subflows are created, and between which IP address pairs?
+- How does the client learn the other IP address of the server?
+
 
 ## 4. The Notion of Backup Path
 
 In some situations, available network paths do not have the same cost.
 They might be expensive for usage, e.g., a data-limited cellular connectivity versus a flat cost based Wi-Fi one.
-Instead of preventing their usage at all, we can declare a network interface as a backup one.
-All the Multipath TCP subflows using this network interface will be marked as backup subflows.
+Instead of preventing their usage at all, we can declare a network interface as a backup one, such that all the Multipath TCP subflows using this network interface will be marked as backup subflows.
 The `default` Lowest-RTT packet scheduler considers backup subflows only if either 1) there is no non-backup subflows, or 2) all the non-backup ones are marked as potentially failed.
 A subflow enters this potentially failed state when it experiences retransmissions time outs.
 
-To better grasp this notion, consider the network scenario shown below.
+To better grasp this notion, consider the request/response traffic presented in the Section 2 with the network scenario shown below.
 ```
    |-------- 100 Mbps, 40 ms RTT --------|
 Client                                Router --------- Server
@@ -187,18 +209,43 @@ Client                                Router --------- Server
 The connection starts on the 40 ms RTT path.
 Then, after 3 seconds, the 40 ms RTT path blackholes all packets (`tc netem loss 100%`) without notifying hosts of the loss of connectivity.
 This situation mimics a mobile device moving out of reachability of a wireless network.
-Two versions of the topology are present in `04_backup`: `topo` (where both paths are marked as "normal") and `topo_bk` (where the 30 ms RTT is marked as backup).
-We experiment with the simple request/response traffic previously explored in `02_scheduler/reqres` with the `default` scheduler.
+Two versions of the topology are present in `04_backup`: `topo` (where both paths are marked as "normal") and `topo_bk` (where the 30 ms RTT path is marked as a backup one).
+The experiment uses the `default` scheduler.
 
-- First run the experiment `reqres_rtt` with the topology `topo`. Then have a look at the experienced application delay in `msg_client.log`. Can you explain your results?
+First run the experiment `reqres_rtt` with the topology `topo`. 
+```bash
+$ mprun -t topo -x reqres_rtt
+```
+- Have a look at the experienced application delay in `msg_client.log`. Can you explain your results?
   
 Now consider the same experiment but with the topology `topo_bk`.
+```bash
+$ mprun -t topo_bk -x reqres_rtt
+```
 
 - How do MPTCP hosts advertise the 30 ms RTT path as a backup one?
 - Look at the application delays in `msg_client.log`. Based on the client trace, can you explain the results?
-- Focus on the server-side trace. Where does the server send the first response after the loss event? Can you explain why? Would it be possible for the server to decrease the application delay?
+- Focus on the server-side trace. Where does the server send the first response after the loss event? Can you explain why? Would it be possible for the server to decrease this application delay?
+
 
 ## 5. The impact of the Congestion Control Algorithm
+
+The ability to use several network paths over a single (Multipath) TCP connection raises concerns about the fairness relative to single-path protocols (like regular TCP).
+To picture this issue, consider an iperf traffic with the following network scenario.
+```
+Client_1 ---------- 20 Mbps, 20 ms RTT --------|      -------- Server_1
+         /                                     |     /
+        /                                      |    /
+  Client                                      Router --------- Server
+        \                                      |    \
+         \                                     |     \
+Client_2 ---------- 20 Mbps, 80 ms RTT --------|      -------- Server_2
+```
+Here, the main `Client` shares each of the network bottleneck with another host.
+Three iperf traffics are generated.
+The first is between `Client` and `Server` and lasts 50 seconds.
+The second is between 
+
 - coupled
 - cubic
 
