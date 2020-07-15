@@ -2,9 +2,17 @@
 
 install_mininet() {
     echo "Install Mininet"
-    # Simply install mininet from the APT repos
-    sudo apt-get update
-    sudo apt-get install -y mininet
+    # Prefer relying on last version of mininet
+    git clone https://github.com/mininet/mininet.git
+    pushd mininet
+    git checkout 2.3.0d6
+    popd
+    ./mininet/util/install.sh
+    # And avoid the famous trap of IP forwarding
+    sudo echo '
+# Mininet: allow IP forwarding
+net.ipv4.ip_forward=1
+net.ipv6.conf.all.forwarding=1' >> /etc/sysctl.conf 
 }
 
 install_clang() {
@@ -20,7 +28,7 @@ install_clang() {
 install_dependencies() {
     echo "Install dependencies"
     sudo apt-get update
-    sudo apt-get install -y flex bison automake make autoconf pkg-config cmake libarchive-dev libgoogle-perftools-dev openssl libssl-dev git
+    sudo apt-get install -y flex bison automake make autoconf pkg-config cmake libarchive-dev libgoogle-perftools-dev openssl libssl-dev git virtualbox-guest-dkms tcpdump xterm iperf
     install_clang
 }
 
@@ -32,7 +40,6 @@ install_iproute() {
     # Note: you might need to change this if you install another version of MPTCP
     git checkout mptcp_v0.94
     make
-    sudo make install
     popd
 }
 
@@ -47,7 +54,7 @@ install_minitopo() {
     git checkout minitopo2
     # Get the current dir, and insert an mprun helper command
     sudo echo "mprun() {" >> /etc/bash.bashrc
-    sudo printf 'sudo python %s/runner.py "$@"\n' $(pwd) >> /etc/bash.bashrc
+    sudo printf 'sudo python3 %s/runner.py "$@"\n' $(pwd) >> /etc/bash.bashrc
     sudo echo "}" >> /etc/bash.bashrc
     popd
 }
@@ -91,8 +98,27 @@ install_mptcp() {
     sudo apt-get update
     sudo apt-get install -y linux-mptcp-4.14
     # The following runs the MPTCP kernel version 4.14.146 as the default one
-    sudo cat /etc/default/grub | sed -e "s/GRUB_DEFAULT=0/GRUB_DEFAULT='Ubuntu, with Linux 4.14.146.mptcp'/" > tmp_grub
+    sudo cat /etc/default/grub | sed -e "s/GRUB_DEFAULT=0/GRUB_DEFAULT='Advanced options for Ubuntu>Ubuntu, with Linux 4.14.146.mptcp'/" > tmp_grub
     sudo mv tmp_grub /etc/default/grub
+    sudo update-grub
+
+    # Finally ask for MPTCP module loading at the loadtime
+    sudo echo "
+# Load MPTCP modules
+sudo modprobe mptcp_olia
+sudo modprobe mptcp_coupled
+sudo modprobe mptcp_balia
+sudo modprobe mptcp_wvegas
+
+# Schedulers
+sudo modprobe mptcp_rr
+sudo modprobe mptcp_redundant
+# The following line will likely not work with versions of MPTCP < 0.95
+sudo modprobe mptcp_blest
+
+# Path managers
+sudo modprobe mptcp_ndiffports
+sudo modprobe mptcp_binder" >> /etc/bash.bashrc
 }
 
 install_dependencies
@@ -100,3 +126,9 @@ install_minitopo
 install_iproute
 install_pquic
 install_mptcp
+
+echo "The vagrant box is now provisionned."
+echo "If not done yet, please reload the vagrant box using"
+echo ""
+echo "vagrant reload"
+echo ""
