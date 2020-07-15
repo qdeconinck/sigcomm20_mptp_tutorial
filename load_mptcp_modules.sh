@@ -7,6 +7,7 @@ sudo modprobe mptcp_wvegas
 # Schedulers
 sudo modprobe mptcp_rr
 sudo modprobe mptcp_redundant
+# The following line will likely not work with versions of MPTCP < 0.95
 sudo modprobe mptcp_blest
 
 # Path managers

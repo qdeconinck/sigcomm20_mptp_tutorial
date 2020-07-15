@@ -15,7 +15,7 @@ Vagrant.configure("2") do |config|
 
   # Every Vagrant development environment requires a box. You can search for
   # boxes at https://vagrantcloud.com/search.
-  config.vm.box = "qdeconinck/sigcomm20_mptp_tutorial"
+  config.vm.box = "ubuntu/bionic64"
   config.ssh.forward_agent = true
   config.ssh.forward_x11 = true
 
@@ -65,6 +65,9 @@ Vagrant.configure("2") do |config|
   #
   # View the documentation for the provider you are using for more
   # information on available options.
+
+  config.vm.provision :shell, path: "prepare_vm.sh"
+  config.vm.provision :reload
 
   config.vm.provision :shell, path: "load_mptcp_modules.sh", run: 'always'
 
