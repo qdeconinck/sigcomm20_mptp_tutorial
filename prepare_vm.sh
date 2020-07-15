@@ -1,12 +1,14 @@
 #!/bin/bash
 
 install_mininet() {
+    echo "Install Mininet"
     # Simply install mininet from the APT repos
     sudo apt-get update
     sudo apt-get install -y mininet
 }
 
 install_clang() {
+    echo "Install CLANG"
     # Install clang 10
     sudo echo "deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-10 main" >> /etc/apt/sources.list
     sudo echo "deb-src http://apt.llvm.org/bionic/ llvm-toolchain-bionic-10 main" >> /etc/apt/sources.list
@@ -16,12 +18,14 @@ install_clang() {
 }
 
 install_dependencies() {
+    echo "Install dependencies"
     sudo apt-get update
     sudo apt-get install -y flex bison automake make autoconf pkg-config cmake libarchive-dev libgoogle-perftools-dev openssl libssl-dev git
     install_clang
 }
 
 install_iproute() {
+    echo "Install MPTCP-aware version of ip route"
     # Install an MPTCP-aware version of ip route
     git clone https://github.com/multipath-tcp/iproute-mptcp.git
     pushd iproute-mptcp
@@ -33,6 +37,7 @@ install_iproute() {
 }
 
 install_minitopo() {
+    echo "Install minitopo"
     # First, install mininet
     install_mininet
     # Then fetch the repository
@@ -44,9 +49,11 @@ install_minitopo() {
     sudo echo "mprun() {" >> /etc/bash.bashrc
     sudo printf 'sudo python %s/runner.py "$@"\n' $(pwd) >> /etc/bash.bashrc
     sudo echo "}" >> /etc/bash.bashrc
+    popd
 }
 
 install_pquic() {
+    echo "Install PQUIC"
     # We first need to have picotls
     git clone https://github.com/p-quic/picotls.git
     pushd picotls
@@ -76,15 +83,16 @@ install_pquic() {
 }
 
 install_mptcp() {
+    echo "Install MPTCP"
     # Let us rely on APT repo. For more details to build this, go to
     # http://multipath-tcp.org/pmwiki.php/Users/DoItYourself
     sudo apt-key adv --keyserver hkps://keyserver.ubuntu.com:443 --recv-keys 379CE192D401AB61
     sudo sh -c "echo 'deb https://dl.bintray.com/multipath-tcp/mptcp_deb stable main' > /etc/apt/sources.list.d/mptcp.list"
     sudo apt-get update
     sudo apt-get install -y linux-mptcp-4.14
-    # The following remove the previous running kernel, to make MPTCP the default one
-    export DEBIAN_FRONTEND=noninteractive
-    sudo apt-get remove linux-headers-4.15.0-109-generic linux-image-4.15.0-109-generic linux-modules-4.15.0-109-generic
+    # The following runs the MPTCP kernel version 4.14.146 as the default one
+    sudo cat /etc/default/grub | sed -e "s/GRUB_DEFAULT=0/GRUB_DEFAULT='Ubuntu, with Linux 4.14.146.mptcp'/" > tmp_grub
+    sudo mv tmp_grub /etc/default/grub
 }
 
 install_dependencies

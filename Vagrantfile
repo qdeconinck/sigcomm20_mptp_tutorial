@@ -67,8 +67,6 @@ Vagrant.configure("2") do |config|
   # information on available options.
 
   config.vm.provision :shell, path: "prepare_vm.sh"
-  config.vm.provision :reload
-
   config.vm.provision :shell, path: "load_mptcp_modules.sh", run: 'always'
 
   # Enable provisioning with a shell script. Additional provisioners such as
