@@ -9,10 +9,10 @@ install_mininet() {
     popd
     ./mininet/util/install.sh
     # And avoid the famous trap of IP forwarding
-    sudo echo '
+    echo '
 # Mininet: allow IP forwarding
 net.ipv4.ip_forward=1
-net.ipv6.conf.all.forwarding=1' >> /etc/sysctl.conf 
+net.ipv6.conf.all.forwarding=1' | sudo tee -a /etc/sysctl.conf 
 }
 
 install_clang() {
@@ -53,9 +53,9 @@ install_minitopo() {
     # Install the right version of minitopo
     git checkout minitopo2
     # Get the current dir, and insert an mprun helper command
-    sudo echo "mprun() {" >> /etc/bash.bashrc
-    sudo printf 'sudo python3 %s/runner.py "$@"\n' $(pwd) >> /etc/bash.bashrc
-    sudo echo "}" >> /etc/bash.bashrc
+    echo "mprun() {" | sudo tee -a /etc/bash.bashrc
+    printf 'sudo python %s/runner.py "$@"\n' $(pwd) | sudo tee -a /etc/bash.bashrc
+    echo "}" | sudo tee -a /etc/bash.bashrc
     popd
 }
 
@@ -103,7 +103,7 @@ install_mptcp() {
     sudo update-grub
 
     # Finally ask for MPTCP module loading at the loadtime
-    sudo echo "
+    echo "
 # Load MPTCP modules
 sudo modprobe mptcp_olia
 sudo modprobe mptcp_coupled
@@ -118,7 +118,7 @@ sudo modprobe mptcp_blest
 
 # Path managers
 sudo modprobe mptcp_ndiffports
-sudo modprobe mptcp_binder" >> /etc/bash.bashrc
+sudo modprobe mptcp_binder" | sudo tee -a /etc/bash.bashrc
 }
 
 install_dependencies
@@ -127,8 +127,11 @@ install_iproute
 install_pquic
 install_mptcp
 
-echo "The vagrant box is now provisionned."
-echo "If not done yet, please reload the vagrant box using"
-echo ""
-echo "vagrant reload"
-echo ""
+echo "+------------------------------------------------------+"
+echo "|                                                      |"
+echo "| The vagrant box is now provisioned.                  |"
+echo "| If not done yet, please reload the vagrant box using |"
+echo "|                                                      |"
+echo "| vagrant reload                                       |"
+echo "|                                                      |"
+echo "+------------------------------------------------------+"
