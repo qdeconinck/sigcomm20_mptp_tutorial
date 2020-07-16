@@ -40,6 +40,7 @@ install_iproute() {
     # Note: you might need to change this if you install another version of MPTCP
     git checkout mptcp_v0.94
     make
+    sudo make install
     popd
 }
 
@@ -96,7 +97,7 @@ install_mptcp() {
     sudo apt-key adv --keyserver hkps://keyserver.ubuntu.com:443 --recv-keys 379CE192D401AB61
     sudo sh -c "echo 'deb https://dl.bintray.com/multipath-tcp/mptcp_deb stable main' > /etc/apt/sources.list.d/mptcp.list"
     sudo apt-get update
-    sudo apt-get install -y linux-mptcp-4.14
+    sudo apt-get install -y linux-mptcp-4.14 linux-image-4.14.146.mptcp linux-headers-4.14.146.mptcp
     # The following runs the MPTCP kernel version 4.14.146 as the default one
     sudo cat /etc/default/grub | sed -e "s/GRUB_DEFAULT=0/GRUB_DEFAULT='Advanced options for Ubuntu>Ubuntu, with Linux 4.14.146.mptcp'/" > tmp_grub
     sudo mv tmp_grub /etc/default/grub
@@ -133,5 +134,14 @@ echo "| The vagrant box is now provisioned.                  |"
 echo "| If not done yet, please reload the vagrant box using |"
 echo "|                                                      |"
 echo "| vagrant reload                                       |"
+echo "|                                                      |"
+echo "| Once reloaded, you can get SSH access to the VM with |"
+echo "|                                                      |"
+echo "| vagrant ssh                                          |"
+echo "|                                                      |"
+echo "| Once connected, check that you have a mptcp running  |"
+echo "| kernel using the following command in the VM         |"
+echo "|                                                      |"
+echo "| uname -a                                             |"
 echo "|                                                      |"
 echo "+------------------------------------------------------+"

@@ -58,7 +58,7 @@ Vagrant.configure("2") do |config|
     # Customize the amount of memory on the VM:
     vb.memory = "2048"
     # Having more than 1 vCPU is important for QUIC
-    vb.cpus = "2"
+    vb.cpus = "3"
   end
   #
   # View the documentation for the provider you are using for more

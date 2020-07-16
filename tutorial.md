@@ -103,6 +103,8 @@ Since the round-robin scheduler spreads the load over the slowest network path, 
 
 ### Case 2: HTTP traffic
 
+TODO: discuss rmem/wmem
+
 While the choice of the packet scheduler is important for delay-sensitive traffic, this is less obvious for bulk transfers.
 Consider the following network.
 
