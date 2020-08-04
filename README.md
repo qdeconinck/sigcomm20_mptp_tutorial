@@ -1,5 +1,16 @@
 # MPTP Tutorial Hands-On
 
+This repository is part of the [ACM SIGCOMM 2020 Tutorial on Multipath Transport Protocols](https://conferences.sigcomm.org/sigcomm/2020/tutorial-mptp.html).
+More specifically, it contains the hands-on labs enabling participants to play with both Multipath TCP and Multipath QUIC.
+
+## Prerequisites and Setup
+
+To benefit from the hands-on, you need recent versions of the following software installed on your local computer:
+
+* [Vagrant](https://www.vagrantup.com/docs/installation)
+* [VirtualBox](https://www.virtualbox.org/wiki/Downloads)
+* [Wireshark](https://www.wireshark.org/download.html) (to be able to analyze Multipath TCP packet traces)
+
 ## VM Setup
 
 Just run the following commands
