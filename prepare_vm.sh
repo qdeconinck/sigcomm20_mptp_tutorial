@@ -18,8 +18,8 @@ net.ipv6.conf.all.forwarding=1' | sudo tee -a /etc/sysctl.conf
 install_clang() {
     echo "Install CLANG"
     # Install clang 10
-    sudo echo "deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-10 main" >> /etc/apt/sources.list
-    sudo echo "deb-src http://apt.llvm.org/bionic/ llvm-toolchain-bionic-10 main" >> /etc/apt/sources.list
+    echo "deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-10 main" | sudo tee -a /etc/apt/sources.list
+    echo "deb-src http://apt.llvm.org/bionic/ llvm-toolchain-bionic-10 main" | sudo tee -a /etc/apt/sources.list
     wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key|sudo apt-key add -
     sudo apt-get update
     sudo apt-get install -y clang-10 lldb-10 lld-10

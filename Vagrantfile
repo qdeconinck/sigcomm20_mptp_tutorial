@@ -57,8 +57,11 @@ Vagrant.configure("2") do |config|
   config.vm.provider "virtualbox" do |vb|
     # Customize the amount of memory on the VM:
     vb.memory = "2048"
-    # Having more than 1 vCPU is important for QUIC
-    vb.cpus = "3"
+    # Because VirtualBox seems to handle very badly the availability of
+    # several cores (and hence introduce lot of variability with mininet),
+    # just force a single vCPU. However, having more than 1 vCPU is
+    # important for QUIC...
+    vb.cpus = "1"
   end
   #
   # View the documentation for the provider you are using for more
