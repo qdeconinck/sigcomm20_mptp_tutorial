@@ -2,4 +2,4 @@ xpType:pquic
 clientPcap:yes
 serverPcap:yes
 snaplenPcap:100
-pquicSize:10240000
+pquicSize:5120000

@@ -255,7 +255,7 @@ Client                                Router --------- Server
 The connection starts on the 40 ms RTT path.
 Then, after 3 seconds, the 40 ms RTT path blackholes all packets (`tc netem loss 100%`) without notifying hosts of the loss of connectivity.
 This situation mimics a mobile device moving out of reachability of a wireless network.
-Two versions of the topology are present in `04_backup`: `topo` (where both paths are marked as "normal") and `topo_bk` (where the 30 ms RTT path is marked as a backup one).
+Two versions of the topology are present in `/tutorial/04_backup`: `topo` (where both paths are marked as "normal") and `topo_bk` (where the 30 ms RTT path is marked as a backup one).
 The experiment uses the `default` scheduler.
 
 First run the experiment `reqres_rtt` with the topology `topo`. 
@@ -332,23 +332,131 @@ $ mprun -t topo_cong -x iperf_scenario_olia_4sf
 ```
 What do you observe?
 
-## 6. Advanced Packet Scheduling with Multipath QUIC
+## 6. Exploring Multipath QUIC
 
-First case:
+We now turn into Multipath QUIC.
+To play with it, we focus on the plugin implementation provided by [PQUIC](https://pquic.org).
+Before going further, let us quickly assess if Multipath QUIC is able to take advantage of multiple network paths.
+
+> Notice that for the purpose of this tutorial, we only explore quite slow networks.
+> This is because VirtualBox constrains us with only 1 vCPU to have stable network experiments.
+> Yet, QUIC is quite CPU-intensive due to the usage of TLS.
+> For further experiments, we advise you to install PQUIC on your host machine.
+> Please see the `install_dependencies` and `install_pquic` functions of the `prepare_vm.sh` provision script.
+
+For this, consider the following simple network scenario.
 ```
-   |-------- 20 Mbps, 40 ms RTT --------|
+   |-------- 10 Mbps, 40 ms RTT --------|
 Client                                Router --------- Server
-   |-------- 20 Mbps, 80 ms RTT --------|
+   |-------- 10 Mbps, 40 ms RTT --------|
 ```
 
-Compare SP-QUIC vs. MP-QUIC with Round-Robin and Lowest RTT schedulers.
+Here, the client initiates a GET request to the server to fetch a file of 5 MB.
+First, let us observe the performance of regular QUIC.
+The files are located in `/tutorial/06_multipath_quic`.
 
-Second case:
-```
-      /----- 20 Mbps, 40 ms RTT -----\
-Client ----- 20 Mbps, 80 ms RTT ----- Router --------- Server
-      \----- 20 Mbps, 40 ms RTT -----/
+```bash
+$ mprun -t topo -x xp_quic
 ```
 
-Compare MP-QUIC same path manager vs. MP-QUIC reverse.
-Observe that first path and third paths are only used in one direction.
+Once the experiment completes, have a look at the `pquic_client.log` file.
+Notice that the file is quite long.
+This is because all the connection's packets and frames are logged in this output file.
+Since QUIC packets are nearly completely encrypted, it is difficult to analyze PCAP traces without knowing the TLS keys.
+At the end of the file (the penultimate line), you should have the time of the GET transfer, which should be about 4.5 s.
+
+Then, you can have a look at the multipath version of QUIC.
+Two variants are available: one using a lowest-latency based packet scheduler and the other one using a round-robin strategy.
+Each variant is provided as a plugin; see files `xp_mpquic_rtt`, `xp_mpquic_rr` and the `~/pquic/plugins/multipath/` directory.
+
+```bash
+$ mprun -t topo -x xp_mpquic_rtt
+$ mprun -t topo -x xp_mpquic_rr
+```
+
+In the output file `pquic_client.log`, you should notice that the transfer file is lower than with plain QUIC.
+You should also see Multipath-specific frames (such as MP_ACK).
+
+Many aspects of the multipath algorithms are similar between Multipath TCP and Multipath QUIC (at least when carrying a single data stream).
+Yet, one major difference is the notion of unidirectional QUIC flows (compared to the bidirectional Multipath TCP subflows).
+To explore this, let us consider the following network scenario.
+
+```
+      /----- 10 Mbps, 40 ms RTT -----\
+Client ----- 10 Mbps, 80 ms RTT ----- Router --------- Server
+      \----- 10 Mbps, 40 ms RTT -----/
+```
+
+In this experiment, each host limits itself to two sending uniflows.
+In the first run, both hosts follow the same uniflow assignment strategy by prefering first lower Address IDs (hence using the two upper network paths).
+You can check this using the following command.
+
+```bash
+$ mprun -t topo_3paths -x xp_mpquic_rtt
+```
+
+Have a look at the PCAP trace to check the addresses used by the QUIC connection (you can check this using "Statistics -> Conversations" under the "UDP" tab).
+
+Then, we consider the case where the client and the server do not follow the same assignation strategy.
+While the client still prefers lower Address IDs first, the server favors the higher Address IDs, such that the client will send packets on the two upper network paths while the server will transmit data over the two lower ones.
+You can perform this experiment with the following command.
+
+```bash
+mprun -t topo_3paths -x xp_mpquic_rtt_asym
+```
+
+Using wireshark, you will observe that Multipath QUIC uses the upper and the lower network path in only one direction.
+
+
+### Tweaking the Packet Scheduler
+
+Unlike Multipath TCP, Multipath QUIC is implemented as a user-space program, making its updates and its tweakings easier.
+In addition, the PQUIC implementation relies on plugins that can be dynamically loaded on connections.
+In this section, we will focus on modifying the packet scheduler, in particular to transform the round-robin into a weighted round-robin.
+
+For this, we advise you to take the following network scenario as your basis (described in the file `topo`).
+```
+   |-------- 10 Mbps, 40 ms RTT --------|
+Client                                Router --------- Server
+   |-------- 10 Mbps, 40 ms RTT --------|
+```
+
+For the sake of simplicity, we will directly modify the round-robin code to include the weighted notion.
+For this, go to the `~/pquic/plugins/multipath/path_schedulers` folder.
+The file of interest is `schedule_path_rr.c`, so open it with your favorite command-line text editor (both `nano` and `vim` are installed in the vagrant box).
+Take some time to understand what this code is doing, but it is likely that you will need to tweak the condition in line 81
+```c
+} else if (pkt_sent_c < selected_sent_pkt || selected_cwin_limited) {
+```
+Feel free to weight each path as you like, yet a good and simple heuristic is to rely on the parameter `ì`.
+Be cautious that the actual Uniflow ID is `i+1`, as `i` goes from 0 included to 2 excluded.
+
+> Note that our Multipath plugin does not use the Uniflow ID 0 anymore when other uniflows are in use.
+> This is just an implementation choice.
+
+When you are done, just compile your plugin into eBPF bytecode using
+```bash
+# In ~/pquic/plugins/multipath/path_schedulers
+$ CLANG=clang-10 LLC=llc-10 make
+```
+
+And then, returning back to the `/tutorial/06_multipath_quic` folder, you can check the effects of your changes using
+```bash
+$ mprun -t topo -x xp_mpquic_rr
+```
+and the content of `pquic_client.log`.
+As this is a bulk transfer over symmetrical links, it is very unlikely that you will observe any difference in terms of packets sent by the server (the sending flow is limited by the congestion window).
+However, the (control) packets sent by the client to the server are not.
+You should see the difference in the MP ACK frames sent by the server.
+With an appropriate hack, you should see lines similar to the following ones at the end of `pquic_client.log`
+```
+f1a28e465024f80a: Sending 40 bytes to 10.1.0.1:4443 at T=2.776148 (5ac22efd67056)
+Select returns 48, from length 28, after 21202 (delta_t was 61014)
+f1a28e465024f80a: Receiving 48 bytes from 10.1.0.1:4443 at T=2.797454 (5ac22efd6c390)
+f1a28e465024f80a: Receiving packet type: 6 (1rtt protected phi0), S0,
+f1a28e465024f80a:     <48d96d9d323736ae>, Seq: 738 (738)
+f1a28e465024f80a:     Decrypted 19 bytes               
+f1a28e465024f80a:     MP ACK for uniflow 0x01 (nb=0), 0-114
+f1a28e465024f80a:     MP ACK for uniflow 0x02 (nb=0), 0-228
+```
+assessing here that the client sent twice more packets on the uniflow 2 than on the uniflow 1.
