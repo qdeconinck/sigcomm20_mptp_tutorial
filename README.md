@@ -363,6 +363,48 @@ Once the experiment completes, have a look at the `pquic_client.log` file.
 Notice that the file is quite long.
 This is because all the connection's packets and frames are logged in this output file.
 Since QUIC packets are nearly completely encrypted, it is difficult to analyze PCAP traces without knowing the TLS keys.
+Some tools, such as [qlog and qvis](https://qlog.edm.uhasselt.be/), are very convenient to analyze network traces.
+For this tutorial, we will stick to the textual log provided by the PQUIC implementation.
+At the beginning of the log file, you will notice the sending of `Crypto` frames performing the TLS Handshake of the QUIC connection.
+Most of them are carried by `initial` and `handshake` packets, which are special QUIC packets used during the initiation of a QUIC connection.
+When the TLS handshake completes, the log lists the transport parameters advertised by the peer.
+For instance, you could observe something similar to the following content.
+```
+Received transport parameter TLS extension (58 bytes):
+    Extension list (58 bytes):
+        Extension type: 5, length 4 (0x0005 / 0x0004), 80200000
+        Extension type: 4, length 4 (0x0004 / 0x0004), 80100000
+        Extension type: 8, length 2 (0x0008 / 0x0002), 6710
+        Extension type: 1, length 2 (0x0001 / 0x0002), 7a98
+        Extension type: 3, length 2 (0x0003 / 0x0002), 45a0
+        Extension type: 2, length 16 (0x0002 / 0x0010), 051c361adef11849bb90d5ab01168212
+        Extension type: 9, length 2 (0x0009 / 0x0002), 6710
+        Extension type: 6, length 4 (0x0006 / 0x0004), 80010063
+        Extension type: 7, length 4 (0x0007 / 0x0004), 8000ffff
+```
+The extension type refers to a specific [QUIC Transport Parameter](https://datatracker.ietf.org/doc/html/draft-ietf-quic-transport-27#section-18.2).
+For instance, the type `4` refers the the `initial_max_data` (i.e., the initial receiving window for data over the whole connection) which is here set to the hexadecimal value `0x100000` which correspond to about 1 MB (notice that values are encoded as *varint*, or variable integer, and the leading `8` indicates that the number is formatted on 4 bytes).
+Then, you should observe that the client initiates the GET request by sending a `Stream` frame.
+```
+Opening stream 4 to GET /doc-5120000.html
+6f6ab4b64e3e5ffc: Sending packet type: 6 (1rtt protected phi0), S1,
+6f6ab4b64e3e5ffc:     <966c3af56ac82e96>, Seq: 1 (1)
+6f6ab4b64e3e5ffc:     Prepared 26 bytes
+6f6ab4b64e3e5ffc:     Stream 4, offset 0, length 23, fin = 1: 474554202f646f63...
+```
+Notice that here, the Destination Connection ID used by packets going from the client to the server is `966c3af56ac82e96`, and this packet has the number `1`.
+A little later in the file, you should notice that the server starts sending the requested file over the same `Stream 4`.
+```
+6f6ab4b64e3e5ffc: Receiving 1440 bytes from 10.1.0.1:4443 at T=0.108525 (5ac37709f20e2)
+6f6ab4b64e3e5ffc: Receiving packet type: 6 (1rtt protected phi0), S1,
+6f6ab4b64e3e5ffc:     <ee522f732adea40d>, Seq: 3 (3)
+6f6ab4b64e3e5ffc:     Decrypted 1411 bytes
+6f6ab4b64e3e5ffc:     ACK (nb=0), 0-1
+6f6ab4b64e3e5ffc:     Stream 4, offset 0, length 1403, fin = 0: 3c21444f43545950...
+```
+In the server to client flow, the Destination Connection ID used is `ee522f732adea40d`.
+Notice also the `ACK` frame acknowledging the client's packets from `0` to `1` included.
+You can then flow to the end of the file 
 At the end of the file (the penultimate line), you should have the time of the GET transfer, which should be about 4.5 s.
 
 Then, you can have a look at the multipath version of QUIC.
@@ -374,8 +416,106 @@ $ mprun -t topo -x xp_mpquic_rtt
 $ mprun -t topo -x xp_mpquic_rr
 ```
 
-In the output file `pquic_client.log`, you should notice that the transfer file is lower than with plain QUIC.
-You should also see Multipath-specific frames (such as MP_ACK).
+Let us now open the output file `pquic_client.log` and spot the differences with the plain QUIC run.
+You should notice lines similar to the following ones at the end of the handshake.
+```
+9134561c0b91d956: Receiving packet type: 6 (1rtt protected phi0), S0,
+9134561c0b91d956:     <63acfe69e68b5f06>, Seq: 0 (0)
+9134561c0b91d956:     Decrypted 203 bytes
+9134561c0b91d956:     MP NEW CONNECTION ID for Uniflow 0x01 CID: 0x88eecd622ea8ed93, 2a9cbf24ab0b4fa0890ada56b0439695
+9134561c0b91d956:     MP NEW CONNECTION ID for Uniflow 0x02 CID: 0xcf575df2b22497af, 4715a4860769572da317e4bce604eadf
+9134561c0b91d956:     ADD ADDRESS with ID 0x01 Address: 10.1.0.1
+9134561c0b91d956:     Crypto HS frame, offset 0, length 133: 04000081000186a0...
+```
+Here, the server advertises its IP address and provides the client with two connections IDs for two different uniflows.
+Remember the provided CIDs (here `88eecd622ea8ed93` and `cf575df2b22497af`), you should see them soon again.
+Similarly, the client does the same for the server.
+```
+9134561c0b91d956: Sending packet type: 6 (1rtt protected phi0), S1,
+9134561c0b91d956:     <51d29dadd7c60d25>, Seq: 0 (0)
+9134561c0b91d956:     Prepared 79 bytes
+9134561c0b91d956:     MP NEW CONNECTION ID for Uniflow 0x01 CID: 0xfbaa59f5cafb6b62, a1689ec73f96cfbbbb23dcba2bc11610
+9134561c0b91d956:     MP NEW CONNECTION ID for Uniflow 0x02 CID: 0x9cba2fa451844304, e1a80f8d4d5112b76fd2712df50eb87f
+9134561c0b91d956:     ADD ADDRESS with ID 0x01 Address: 10.0.0.1
+9134561c0b91d956:     ADD ADDRESS with ID 0x02 Address: 10.0.1.1
+9134561c0b91d956:     ACK (nb=0), 0-1
+```
+Again, note the Connection IDs for each of the uniflows (here, `fbaa59f5cafb6b6` and `9cba2fa451844304`).
+
+While the QUIC transport parameters are echanged during the very first packets, PQUIC logs them quite late.
+Yet, you should notice one major difference compared to the single path version.
+```
+Received ALPN: hq-27
+Received transport parameter TLS extension (62 bytes):
+    Extension list (62 bytes):
+        Extension type: 5, length 4 (0x0005 / 0x0004), 80200000
+        Extension type: 4, length 4 (0x0004 / 0x0004), 80100000
+        Extension type: 8, length 2 (0x0008 / 0x0002), 6710
+        Extension type: 1, length 2 (0x0001 / 0x0002), 7a98
+        Extension type: 3, length 2 (0x0003 / 0x0002), 45a0
+        Extension type: 2, length 16 (0x0002 / 0x0010), 671b8787ebc8766c206c8e8730c07f9b
+        Extension type: 9, length 2 (0x0009 / 0x0002), 6710
+        Extension type: 6, length 4 (0x0006 / 0x0004), 80010063
+        Extension type: 7, length 4 (0x0007 / 0x0004), 8000ffff
+        Extension type: 64, length 1 (0x0040 / 0x0001), 02
+```
+Here, the extension type 64 (or in hexadecimal 0x40) corresponds to the `max_sending_uniflow_id` parameter, here set to 2.
+If you look at the server's log `pquic_server.log`, you should see that the client advertises the same value for that parameter.
+
+Then, you should see that the client probes each of its sending uniflow using a `path_challenge` frame.
+```
+9134561c0b91d956: Sending packet type: 6 (1rtt protected phi0), S1,
+9134561c0b91d956:     <88eecd622ea8ed93>, Seq: 0 (0)
+9134561c0b91d956:     Prepared 40 bytes
+9134561c0b91d956:     path_challenge: 97f23b8acc60945c
+9134561c0b91d956:     ACK (nb=0), 1-2
+9134561c0b91d956:     Stream 4, offset 0, length 23, fin = 1: 474554202f646f63...
+
+[...]
+
+9134561c0b91d956: Sending 1440 bytes to 10.1.0.1:4443 at T=0.104624 (5ac3842708af4)
+9134561c0b91d956: Sending packet type: 6 (1rtt protected phi0), S1,
+9134561c0b91d956:     <cf575df2b22497af>, Seq: 0 (0)
+9134561c0b91d956:     Prepared 9 bytes
+9134561c0b91d956:     path_challenge: 88e31e087108aa86
+```
+Note that the newly provided connection IDs are used here, meaning that the client starts using the additional sending uniflows provided by the server.
+Later, the server does the same
+```
+9134561c0b91d956: Receiving 1252 bytes from 10.1.0.1:4443 at T=0.165320 (5ac384271780c)
+9134561c0b91d956: Receiving packet type: 6 (1rtt protected phi0), S1,
+9134561c0b91d956:     <fbaa59f5cafb6b62>, Seq: 0 (0)
+9134561c0b91d956:     Decrypted 1223 bytes
+9134561c0b91d956:     path_challenge: 056a9d06df422e68
+9134561c0b91d956:     MP ACK for uniflow 0x01 (nb=0), 0
+9134561c0b91d956:     path_response: 97f23b8acc60945c
+9134561c0b91d956:     Stream 4, offset 0, length 1195, fin = 0: 3c21444f43545950...
+
+Select returns 1252, from length 28, after 6 (delta_t was 0)
+9134561c0b91d956: Receiving 1252 bytes from 10.1.0.1:4443 at T=0.165416 (5ac384271786c)
+9134561c0b91d956: Receiving packet type: 6 (1rtt protected phi0), S1,
+9134561c0b91d956:     <9cba2fa451844304>, Seq: 0 (0)
+9134561c0b91d956:     Decrypted 1223 bytes
+9134561c0b91d956:     path_challenge: 256a218f09929454
+9134561c0b91d956:     Stream 4, offset 1195, length 1210, fin = 0: 546e336f7637722e...
+```
+Once all uniflows have received their `path_response` frame, the multipath usage is fully set up.
+Notice the usage of `MP ACK` frames to acknowledge the uniflows.
+
+> Note that our Multipath plugin does not use the Uniflow ID 0 anymore when other uniflows are in use.
+> This is just an implementation choice.
+
+If you want to observe the distribution of packets between paths, you can have a quick look at the last packet sent by the client containing `MP ACK` frames.
+```
+9134561c0b91d956: Sending packet type: 6 (1rtt protected phi0), S0,
+9134561c0b91d956:     <88eecd622ea8ed93>, Seq: 181 (181)
+9134561c0b91d956:     Prepared 23 bytes
+9134561c0b91d956:     MP ACK for uniflow 0x01 (nb=0), 0-738
+9134561c0b91d956:     MP ACK for uniflow 0x02 (nb=1), 62c-733, 0-62a
+```
+Since both paths have the same characteristics, it is expected that both uniflows have seen a similar maximum packet number.
+Then you can flow through the file to find the transfer file time at the end.
+You should notice that it is lower than with plain QUIC.
 
 Many aspects of the multipath algorithms are similar between Multipath TCP and Multipath QUIC (at least when carrying a single data stream).
 Yet, one major difference is the notion of unidirectional QUIC flows (compared to the bidirectional Multipath TCP subflows).
@@ -430,9 +570,6 @@ Take some time to understand what this code is doing, but it is likely that you 
 ```
 Feel free to weight each path as you like, yet a good and simple heuristic is to rely on the parameter `ì`.
 Be cautious that the actual Uniflow ID is `i+1`, as `i` goes from 0 included to 2 excluded.
-
-> Note that our Multipath plugin does not use the Uniflow ID 0 anymore when other uniflows are in use.
-> This is just an implementation choice.
 
 When you are done, just compile your plugin into eBPF bytecode using
 ```bash
