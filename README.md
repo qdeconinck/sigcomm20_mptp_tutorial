@@ -542,7 +542,7 @@ While the client still prefers lower Address IDs first, the server favors the hi
 You can perform this experiment with the following command.
 
 ```bash
-mprun -t topo_3paths -x xp_mpquic_rtt_asym
+$ mprun -t topo_3paths -x xp_mpquic_rtt_asym
 ```
 
 Using wireshark, you will observe that Multipath QUIC uses the upper and the lower network path in only one direction.
