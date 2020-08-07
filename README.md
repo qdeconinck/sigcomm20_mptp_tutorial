@@ -88,11 +88,6 @@ A quick inspection of the `server.log` file should indicate a goodput twice larg
 This confirms that Multipath TCP can take advantage of multiple network paths (in this case, two) while plain TCP cannot.
 You can also have a look at the pcap files to observe the usage of "Multipath TCP" TCP options.
 
-> A careful look at the `xp_mptcp` file shows that in the Multipath TCP experiment, we force the receiving and the sending windows to 8 MB.
-> This is to limit the variability of the results introduced by the receive buffer autotuning of the Linux kernel.
-> However, and even with TCP, it is likely that you will observe some variability between your runs.
-> Unfortunately, this is a shortcoming of the emulation...
-
 
 ## 2. Impact of the Selection of the Path
 
