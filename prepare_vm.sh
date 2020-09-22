@@ -74,7 +74,7 @@ install_pquic() {
     git clone https://github.com/p-quic/pquic.git
     pushd pquic
     # Go on a special branch for an additional multipath plugin
-    git checkout sigcomm20_mptp
+    git checkout mobicom20_mptp
     git submodule update --init
     cd ubpf/vm/
     make
