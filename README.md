@@ -170,7 +170,7 @@ and have a look at the results in the `http_client.log` file.
 - What happens if you increase the window sizes? (Replace all the 1000000 values by 8000000 in the experiment file)
 - On the other hand, if you focus on the Lowest RTT scheduler, what if the window sizes are very low (set 300000)? Could you explain this result?
 
-> Other schedulers such as BLEST or ECF aims at tackling this Head-Of-Line blocking problem.
+> Other schedulers such as BLEST or ECF aim at tackling this Head-Of-Line blocking problem.
 > However, these are not included in the provided version of the vagrant box.
 
 
