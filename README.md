@@ -47,7 +47,7 @@ The remaining of this document is split into 6 sections.
 The first five ones focus on Multipath TCP and the experimentation of various scenarios with different provided algorithms (packet scheduler, path manager, congestion control).
 The last one is dedicated to Multipath QUIC, with a small coding part.
 Although this document was written to perform experiments in order, feel free to directly jump to the section(s) of your interest.
-In case of troubles, do not hesitate to contact us on the [dedicated Slack channel](https://app.slack.com/client/T0107RGGMU6/C0186E2K69W) (during the SIGCOMM event) or open a GitHub issue.
+In case of troubles, do not hesitate to contact us on the [dedicated Slack channel](https://app.slack.com/client/T018NQGMDQE/C01BDECHEV6) (during the MobiCom event) or open a GitHub issue.
 
 
 ## 1. Observing the Bandwidth Aggregation when Using Multiple Paths
