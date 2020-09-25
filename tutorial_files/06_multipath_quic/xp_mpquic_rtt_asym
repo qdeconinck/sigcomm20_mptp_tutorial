@@ -4,4 +4,4 @@ serverPcap:yes
 snaplenPcap:100
 pquicSize:5120000
 pquicClientPlugins:~/pquic/plugins/multipath/multipath_rtt_cond.plugin
-pquicServerPlugins:~/pquic/plugins/multipath/multipath_rtt_asym.plugin
+pquicServerPlugins:~/pquic/plugins/multipath/multipath_rtt_cond_asym.plugin
