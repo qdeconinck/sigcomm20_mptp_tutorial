@@ -12,7 +12,7 @@ install_mininet() {
     echo '
 # Mininet: allow IP forwarding
 net.ipv4.ip_forward=1
-net.ipv6.conf.all.forwarding=1' | sudo tee -a /etc/sysctl.conf 
+net.ipv6.conf.all.forwarding=1' | sudo tee -a /etc/sysctl.conf
 }
 
 install_clang() {
@@ -92,12 +92,15 @@ install_pquic() {
 
 install_mptcp() {
     echo "Install MPTCP"
-    # Let us rely on APT repo. For more details to build this, go to
+    # As Bintray has been discontinued, let's manually download deb packages
+    # and install them. See http://multipath-tcp.org/pmwiki.php/Users/AptRepository
+    # For more details to build this, go to
     # http://multipath-tcp.org/pmwiki.php/Users/DoItYourself
-    sudo apt-key adv --keyserver hkps://keyserver.ubuntu.com:443 --recv-keys 379CE192D401AB61
-    sudo sh -c "echo 'deb https://dl.bintray.com/multipath-tcp/mptcp_deb stable main' > /etc/apt/sources.list.d/mptcp.list"
-    sudo apt-get update
-    sudo apt-get install -y linux-mptcp-4.14 linux-image-4.14.146.mptcp linux-headers-4.14.146.mptcp
+    wget https://github.com/multipath-tcp/mptcp/releases/download/v0.94.7/linux-headers-4.14.146.mptcp_20190924124242_amd64.deb
+    wget https://github.com/multipath-tcp/mptcp/releases/download/v0.94.7/linux-image-4.14.146.mptcp_20190924124242_amd64.deb
+    wget https://github.com/multipath-tcp/mptcp/releases/download/v0.94.7/linux-libc-dev_20190924124242_amd64.deb
+    wget https://github.com/multipath-tcp/mptcp/releases/download/v0.94.7/linux-mptcp-4.14_v0.94.7_20190924124242_all.deb
+    sudo dpkg -i linux-*.deb
     # The following runs the MPTCP kernel version 4.14.146 as the default one
     sudo cat /etc/default/grub | sed -e "s/GRUB_DEFAULT=0/GRUB_DEFAULT='Advanced options for Ubuntu>Ubuntu, with Linux 4.14.146.mptcp'/" > tmp_grub
     sudo mv tmp_grub /etc/default/grub
