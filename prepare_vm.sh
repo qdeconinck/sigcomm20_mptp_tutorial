@@ -30,6 +30,8 @@ install_dependencies() {
     sudo apt-get update
     sudo apt-get install -y flex bison automake make autoconf pkg-config cmake libarchive-dev libgoogle-perftools-dev openssl libssl-dev git virtualbox-guest-dkms tcpdump xterm iperf
     install_clang
+    # Seems needed for newer Ubuntu versions.
+    sudo apt-get install -y openvswitch-switch
 }
 
 install_iproute() {
